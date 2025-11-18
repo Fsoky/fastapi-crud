@@ -3,7 +3,7 @@ from pydantic.alias_generators import to_camel
 
 from tortoise.contrib.pydantic import pydantic_model_creator
 
-from db.models.user import User
+from src.db.models.user import User
 
 UserSchema = pydantic_model_creator(
     User,
