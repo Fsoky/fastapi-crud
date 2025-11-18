@@ -42,3 +42,8 @@ uv sync
 
 # Run
 uv run -m src.__main__
+```
+
+## TODO
+- [ ] Tests (pytest)
+- [ ] Docker
