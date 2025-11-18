@@ -1,10 +1,10 @@
 from fastapi import APIRouter
 
-from . import user
+from .v1.routers import setup_v1_routers
 
 
 def setup_routers() -> APIRouter:
-    router = APIRouter()
+    router = APIRouter(prefix="/api")
     
-    router.include_router(user.router)
+    router.include_router(setup_v1_routers())
     return router
