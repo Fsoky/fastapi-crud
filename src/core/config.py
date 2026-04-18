@@ -9,10 +9,31 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 
 
 class Config(BaseSettings):
-    DB_URL: SecretStr
+    POSTGRES_DB: SecretStr
+    POSTGRES_USER: SecretStr
+    POSTGRES_PASSWORD: SecretStr
+    POSTGRES_HOST: SecretStr
+    POSTGRES_PORT: SecretStr
     
-    APP_HOST: str = "localhost"
-    APP_PORT: int = 8080
+    REDIS_HOST: str
+    REDIS_PORT: str
+    REDIS_PASSWORD: SecretStr | None = None
+    
+    APP_HOST: str = "0.0.0.0"
+    APP_PORT: int = 8000
+    
+    @property
+    def db_url(self) -> str:
+        return (
+            "asyncpg://"
+            f"{self.POSTGRES_USER.get_secret_value()}:{self.POSTGRES_PASSWORD.get_secret_value()}"
+            f"@{self.POSTGRES_HOST.get_secret_value()}:{self.POSTGRES_PORT.get_secret_value()}"
+            f"/{self.POSTGRES_DB.get_secret_value()}"
+        )
+    
+    @property
+    def redis_pwd(self) -> str | None:
+        return self.REDIS_PASSWORD.get_secret_value() if self.REDIS_PASSWORD else None
 
     model_config = SettingsConfigDict(
         env_file=ROOT_DIR / ".env",
@@ -20,38 +41,20 @@ class Config(BaseSettings):
     )
 
 
-class RedisConfig(BaseSettings):
-    HOST: str
-    PORT: int
-    PASSWORD: SecretStr | None = None
-    
-    model_config = SettingsConfigDict(
-        env_file=ROOT_DIR / ".env.redis",
-        env_file_encoding="utf-8"
-    )
-    
-    def get_password(self) -> str | None:
-        return self.PASSWORD.get_secret_value() if self.PASSWORD else None
-
-
 config = Config() # type: ignore
-redis_config = RedisConfig() # type: ignore
 
 redis_client = redis.Redis(
-    host=redis_config.HOST,
-    port=redis_config.PORT,
-    password=redis_config.get_password(),
+    host=config.REDIS_HOST,
+    port=config.REDIS_PORT,
+    password=config.redis_pwd,
     decode_responses=True
 )
 
 TORTOISE_ORM = {
-    "connections": {"default": config.DB_URL.get_secret_value()},
+    "connections": {"default": config.db_url},
     "apps": {
         "models": {
-            "models": [
-                "src.db.models.user",
-                "aerich.models"
-            ],
+            "models": ["src.db.models", "aerich.models"],
             "default_connection": "default",
         },
     },
